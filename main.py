@@ -1,11 +1,13 @@
 import speech_recognition as sr
 import webbrowser 
 import pyttsx3
-# install pocketsphinx too or use recognize google
+import musicLibrary 
+# install pocketsphinx too or use recognize google as recognition engine
+
 
 # create a recognizer object for input voice
 recognizer = sr.Recognizer()
-engine = pyttsx3.init()
+engine = pyttsx3.init() #for producing speech
 
 # it will take text and speak
 def speak(text):
@@ -25,6 +27,10 @@ def processCommand(c):
         webbrowser.open("https://youtube.com",2)
     elif "open linkedin" in c.lower():
         webbrowser.open("https://linkedin.com",2)
+    elif c.lower().startswith("play"):
+        song = c.lower().split(" ")[1]
+        link = musicLibrary.music[song]
+        webbrowser.open(link)
 
 if __name__ == "__main__":
         # Listen for the wake word "Jarvis"
