@@ -14,7 +14,17 @@ def speak(text):
 
 # for processing commands (not the first one i.e Jarvis)
 def processCommand(c):
-    print(c)
+    #use browser methods and use 2 for opening in new tab ; 1 in new window
+    if "open google" in c.lower():
+        webbrowser.open("https://google.com",2)
+    elif "open facebook" in c.lower():
+        webbrowser.open("https://facebook.com",2)
+    elif "open x" in c.lower():
+        webbrowser.open("https://x.com",2)
+    elif "open youtube" in c.lower():
+        webbrowser.open("https://youtube.com",2)
+    elif "open linkedin" in c.lower():
+        webbrowser.open("https://linkedin.com",2)
 
 if __name__ == "__main__":
         # Listen for the wake word "Jarvis"
@@ -41,9 +51,9 @@ if __name__ == "__main__":
             if(word.lower() == "jarvis"):
                 speak("Ya")
                 # listen for command
-                with sr.Microphone() as source:
+                with sr.Microphone() as sour:
                     print("Jarvis Active...")
-                    audio = r.listen(source)
+                    audio = r.listen(sour)
                     command = r.recognize_google(audio)
 
                     processCommand(command) 
