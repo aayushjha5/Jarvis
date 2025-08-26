@@ -2,12 +2,20 @@ import speech_recognition as sr
 import webbrowser 
 import pyttsx3
 import musicLibrary 
+import requests # for handling api requests
+from dotenv import load_dotenv
+import os
+
 # install pocketsphinx too or use recognize google as recognition engine
 
 
 # create a recognizer object for input voice
 recognizer = sr.Recognizer()
 engine = pyttsx3.init() #for producing speech
+# engine.setProperty("rate",150) # for decreasing the rate of speaking the words per minute 
+load_dotenv()
+newsapi = os.getenv("NEWSAPI_KEY")
+
 
 # it will take text and speak
 def speak(text):
@@ -27,10 +35,28 @@ def processCommand(c):
         webbrowser.open("https://youtube.com",2)
     elif "open linkedin" in c.lower():
         webbrowser.open("https://linkedin.com",2)
+    # play music 
     elif c.lower().startswith("play"):
         song = c.lower().split(" ")[1]
         link = musicLibrary.music[song]
-        webbrowser.open(link)
+        webbrowser.open(link,2)
+    # news api integration
+    elif "news" in c.lower():
+        r = requests.get(f"https://newsapi.org/v2/top-headlines?country=us&apiKey={newsapi}")
+        if r.status_code == 200: #success
+            data = r.json() #parse the json response
+
+            # extract the articles
+            articles = data.get('articles',[])
+
+            # print the headlines
+            for article in articles:
+                speak(article['title'])
+                
+                
+
+
+
 
 if __name__ == "__main__":
         # Listen for the wake word "Jarvis"
