@@ -1,1 +1,1 @@
-# Speech to Text AI search - Basic Python
+# Maithili Offline Voice to Text Speech Recognition
