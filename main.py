@@ -1,4 +1,4 @@
-import speech_recognition as sr
+import speech_recognition as sr  #for online speech recognizer
 import webbrowser 
 import pyttsx3
 import musicLibrary 
@@ -9,12 +9,31 @@ from openai import OpenAI # for handling voice search through openai
 from gtts import gTTS # converts text into spoken audio using Google Translate’s TTS and saves it as MP3.
 import pygame   # for playing music 
 
+# importing for offline speech recognition by vosk
+import json
+import sounddevice as sd
+from vosk import Model, KaldiRecognizer
+import queue
 
-# install pocketsphinx too or use recognize google as recognition engine
+# for stopping in hindi - keyword
+STOP_KEYWORDS = {
+    "बंद करो", "रुको", "रुक जाओ", "रुकना", "रुक",
+    "बन्द करो", "रुकिये", "रुकिए"
+}
+
+# for stopping in hindi - function
+def is_stop(text: str) -> bool:
+    if not text:
+        return False
+    t = text.strip().lower()
+    # simple substring match over multiword phrases and single tokens
+    return any(kw in t for kw in STOP_KEYWORDS)
+
+# install pocketsphinx too or use recognize google as online recognition engine
 
 
 # create a recognizer object for input voice
-recognizer = sr.Recognizer()
+'''recognizer = sr.Recognizer() # for online speech recognition '''
 engine = pyttsx3.init() #for producing speech
 # engine.setProperty("rate",150) # for decreasing the rate of speaking the words per minute 
 
@@ -24,12 +43,18 @@ newsapi = os.getenv("NEWSAPI_KEY")
 openaikey = os.getenv("OPENAI_KEY")
 
 
+# loading vosk model
+# model = Model("vosk-model-small-en-in-0.4") # model downloaded in home path
+model = Model("vosk-model-small-hi-0.22") # model downloaded in home path
+rec = KaldiRecognizer(model, 16000) # recognizer at 16 KHz
+
 # it will take text and speak
 def speak_old(text):
     engine.say(text)
     engine.runAndWait()
 
 def speak(text):
+    " Uses gTTS + pygame for speech output"
     tts = gTTS(text)
     tts.save('temp.mp3')
 
@@ -50,7 +75,7 @@ def speak(text):
 
 # for openai
 def aiProcess(command):
-    client = OpenAI(api_key=f"{openaikey}")
+    client = OpenAI(api_key=f"{openaikey}") # Send command to OpenAI API
 
     completion = client.chat.completions.create(
     model = "gpt-3.5-turbo",
@@ -61,6 +86,8 @@ def aiProcess(command):
 )
 
     return completion.choices[0].message.content
+
+
 
 # for processing commands (not the first one i.e Jarvis)
 def processCommand(c):
@@ -76,7 +103,7 @@ def processCommand(c):
         speak("Opening Youtube")
     elif "open linkedin" in c.lower():
         webbrowser.open("https://linkedin.com",2)
-    # play music 
+    # ask to play <<artist_name>> and a song on ytube will open 
     elif c.lower().startswith("play"):
         song = c.lower().split(" ")[1]
         link = musicLibrary.music[song]
@@ -98,7 +125,39 @@ def processCommand(c):
         output = aiProcess(c)
         speak(output)
 
-                
+# for vosk 
+def listen_vosk():
+    q = queue.Queue()
+
+    def audio_callback(indata, frames, time, status):
+        if status:
+            print("Sounddevice status:", status)
+        # indata is a bytes-like object for RawInputStream; ensure bytes
+        q.put(bytes(indata))
+
+    # Use device default input sample rate if available
+    try:
+        device_info = sd.query_devices(sd.default.device, 'input')
+        samplerate = int(device_info['default_samplerate'])
+    except Exception:
+        samplerate = 16000  # fallback
+
+    rec = KaldiRecognizer(model, samplerate)
+
+    with sd.RawInputStream(samplerate=samplerate,
+                           blocksize=8000,
+                           dtype='int16',
+                           channels=1,
+                           callback=audio_callback):
+        # Collect until a full utterance is accepted
+        while True:
+            data = q.get()
+            if rec.AcceptWaveform(data):
+                res = json.loads(rec.Result())
+                return res.get("text", "").lower()
+            # Optionally handle partials:
+            # else:
+            #     partial = json.loads(rec.PartialResult()).get("partial", "")
                 
 
 
@@ -106,8 +165,10 @@ def processCommand(c):
 
 if __name__ == "__main__":
         # Listen for the wake word "Jarvis"
-    speak("Initializing Jarvis.....")
+    speak("मैथिली आवाज सँ पाठ वाणी पहचान प्रणाली मे अपनेक स्वागत अछि")
 
+    # for online speech recognition, use recognize google
+    '''
     while True:
         # obtain audio from the microphone
         r = sr.Recognizer()
@@ -124,6 +185,7 @@ if __name__ == "__main__":
             # phrase time limit means how much time you can wait to continue again to speak
 
             word = r.recognize_google(audio)
+            
 
             # exit check first
             if word.lower() == "stop":
@@ -149,5 +211,27 @@ if __name__ == "__main__":
                         processCommand(command) 
 
 
+        except Exception as e:
+            print("Error: {0}".format(e))
+    '''
+    # for offline speech recognition, use vosk
+    while True:
+        try:
+            word = listen_vosk()
+            print("Heard: ", word)
+
+            if word == "":
+                continue # skip empty
+            if is_stop(word):
+                speak("अलविदा, बंद भ' रहल छी...")
+                break
+            if "jarvis" in word:
+                speak("Ya")
+                command = listen_vosk()
+                if is_stop(word):
+                    speak("अलविदा, बंद भ' रहल छी...")
+                    break
+                else:
+                    processCommand(command)
         except Exception as e:
             print("Error: {0}".format(e))
