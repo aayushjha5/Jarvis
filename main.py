@@ -5,6 +5,7 @@ import musicLibrary
 import requests # for handling api requests
 from dotenv import load_dotenv
 import os
+from openai import OpenAI
 
 # install pocketsphinx too or use recognize google as recognition engine
 
@@ -13,14 +14,31 @@ import os
 recognizer = sr.Recognizer()
 engine = pyttsx3.init() #for producing speech
 # engine.setProperty("rate",150) # for decreasing the rate of speaking the words per minute 
+
+#for storing api keys in env file
 load_dotenv()
 newsapi = os.getenv("NEWSAPI_KEY")
+openaikey = os.getenv("OPENAI_KEY")
 
 
 # it will take text and speak
 def speak(text):
     engine.say(text)
     engine.runAndWait()
+
+# for openai
+def aiProcess(command):
+    client = OpenAI(api_key=f"{openaikey}")
+
+    completion = client.chat.completions.create(
+    model = "gpt-3.5-turbo",
+    messages=[
+        {"role": "system", "content": "You are a virtual assistant named jarvis skilled in general tasks like Alexa and Google Cloud"},
+        {"role": "user", "content": command}
+    ]
+)
+
+    return completion.choices[0].message.content
 
 # for processing commands (not the first one i.e Jarvis)
 def processCommand(c):
@@ -52,6 +70,11 @@ def processCommand(c):
             # print the headlines
             for article in articles:
                 speak(article['title'])
+    else:
+        # let opemAI handle the request
+        output = aiProcess(c)
+        speak(output)
+
                 
                 
 
