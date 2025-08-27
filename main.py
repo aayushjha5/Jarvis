@@ -5,7 +5,10 @@ import musicLibrary
 import requests # for handling api requests
 from dotenv import load_dotenv
 import os
-from openai import OpenAI
+from openai import OpenAI # for handling voice search through openai
+from gtts import gTTS # converts text into spoken audio using Google Translate’s TTS and saves it as MP3.
+import pygame   # for playing music 
+
 
 # install pocketsphinx too or use recognize google as recognition engine
 
@@ -22,9 +25,28 @@ openaikey = os.getenv("OPENAI_KEY")
 
 
 # it will take text and speak
-def speak(text):
+def speak_old(text):
     engine.say(text)
     engine.runAndWait()
+
+def speak(text):
+    tts = gTTS(text)
+    tts.save('temp.mp3')
+
+    # initialize pygame mixer
+    pygame.mixer.init()
+
+    # load the mp3 file
+    pygame.mixer.music.unload()
+
+    # play the mp3 file
+    pygame.mixer.music.play()
+
+    #keep the program running until the music stops playing
+    while pygame.mixer.music.get_busy():
+        pygame.time.Clock().tick(10)
+    
+    os.remove("temp.mp3")
 
 # for openai
 def aiProcess(command):
@@ -33,7 +55,7 @@ def aiProcess(command):
     completion = client.chat.completions.create(
     model = "gpt-3.5-turbo",
     messages=[
-        {"role": "system", "content": "You are a virtual assistant named jarvis skilled in general tasks like Alexa and Google Cloud"},
+        {"role": "system", "content": "You are a virtual assistant named jarvis skilled in general tasks like Alexa and Google Cloud. Give short responses please"},
         {"role": "user", "content": command}
     ]
 )
@@ -51,6 +73,7 @@ def processCommand(c):
         webbrowser.open("https://x.com",2)
     elif "open youtube" in c.lower():
         webbrowser.open("https://youtube.com",2)
+        speak("Opening Youtube")
     elif "open linkedin" in c.lower():
         webbrowser.open("https://linkedin.com",2)
     # play music 
@@ -71,7 +94,7 @@ def processCommand(c):
             for article in articles:
                 speak(article['title'])
     else:
-        # let opemAI handle the request
+        # let openAI handle the request
         output = aiProcess(c)
         speak(output)
 
