@@ -37,7 +37,7 @@ def speak(text):
     pygame.mixer.init()
 
     # load the mp3 file
-    pygame.mixer.music.unload()
+    pygame.mixer.music.load('temp.mp3')
 
     # play the mp3 file
     pygame.mixer.music.play()
@@ -124,17 +124,30 @@ if __name__ == "__main__":
             # phrase time limit means how much time you can wait to continue again to speak
 
             word = r.recognize_google(audio)
+
+            # exit check first
+            if word.lower() == "stop":
+                speak("Goodbye, shutting down...")
+                print("Stopped by voice command")
+                break   # exit the loop
             
             # if word is 'jarvis' then it will speak 'Ya' in reply
             if(word.lower() == "jarvis"):
                 speak("Ya")
                 # listen for command
-                with sr.Microphone() as sour:
+                with sr.Microphone() as source:
                     print("Jarvis Active...")
-                    audio = r.listen(sour)
+                    audio = r.listen(source)
                     command = r.recognize_google(audio)
 
-                    processCommand(command) 
+                    # stop check again here for commands
+                    if "stop" in command.lower():
+                        speak("Goodbye, shutting down...")
+                        print("Stopped by voice command")
+                        break
+                    else:
+                        processCommand(command) 
+
 
         except Exception as e:
             print("Error: {0}".format(e))
